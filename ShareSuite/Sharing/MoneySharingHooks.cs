@@ -29,6 +29,7 @@ namespace ShareSuite
             On.RoR2.Networking.NetworkManagerSystem.OnClientDisconnect -= GoldGatDisconnect;
             On.RoR2.HealthComponent.TakeDamage -= RollOfPenniesDamageHook;
             On.RoR2.GoldSiphonNearbyBodyController.DrainGold -= SiphonGold;
+            On.RoR2.CharacterMaster.SpawnRemoteOperationDrone -= OnSpawnRemoteOperationDrone;
 
             IL.EntityStates.GoldGat.GoldGatFire.FireBullet -= RemoveGoldGatMoneyLine;
         }
@@ -48,6 +49,7 @@ namespace ShareSuite
             On.RoR2.Networking.NetworkManagerSystem.OnClientDisconnect += GoldGatDisconnect;
             On.RoR2.HealthComponent.TakeDamage += RollOfPenniesDamageHook;
             On.RoR2.GoldSiphonNearbyBodyController.DrainGold += SiphonGold;
+            On.RoR2.CharacterMaster.SpawnRemoteOperationDrone += OnSpawnRemoteOperationDrone;
 
             if (ShareSuite.MoneyIsShared.Value && GeneralHooks.IsMultiplayer())
                 IL.EntityStates.GoldGat.GoldGatFire.FireBullet += RemoveGoldGatMoneyLine;
@@ -180,6 +182,24 @@ namespace ShareSuite
                 return;
             }
         }*/
+
+        private static void OnSpawnRemoteOperationDrone(
+            On.RoR2.CharacterMaster.orig_SpawnRemoteOperationDrone orig, CharacterMaster self,
+            string droneBodyToSpawn, uint moneyToUse)
+        {
+            if (!NetworkServer.active || !ShareSuite.MoneyIsShared.Value || !GeneralHooks.IsMultiplayer())
+            {
+                orig(self, droneBodyToSpawn, moneyToUse);
+                return;
+            }
+
+            if (moneyToUse > SharedMoneyValue || moneyToUse > self.money) return;
+
+            // Dead players pay for the drone with their own money, apply what the game took to the shared pool
+            var preSpawnMoney = self.money;
+            orig(self, droneBodyToSpawn, moneyToUse);
+            SharedMoneyValue -= (int) (preSpawnMoney - self.money);
+        }
 
         private static void OnShopPurchase(On.RoR2.PurchaseInteraction.orig_OnInteractionBegin orig,
             PurchaseInteraction self, Interactor activator)

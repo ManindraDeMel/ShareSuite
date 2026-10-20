@@ -98,7 +98,10 @@ namespace ShareSuite
 
             foreach (var playerCharacterMasterController in PlayerCharacterMasterController.instances)
             {
-                if (ItemSharingHooks.IsDeadAndNotADrone(playerCharacterMasterController.master)) continue;
+                // Dead players are synced too so they can buy a drone, unless the game would convert their gold
+                // with Longstanding Solitude, which fails without a body
+                if (!playerCharacterMasterController.master.hasBody && playerCharacterMasterController.master
+                        .inventory.GetItemCountEffective(DLC2Content.Items.OnLevelUpFreeUnlock) > 0) continue;
                 if (playerCharacterMasterController.master.money == MoneySharingHooks.SharedMoneyValue) continue;
                 playerCharacterMasterController.master.money = (uint) MoneySharingHooks.SharedMoneyValue;
 
